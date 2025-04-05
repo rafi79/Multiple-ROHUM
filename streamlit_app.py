@@ -129,31 +129,27 @@ def generate_response(prompt, user_input, model):
         # Format the prompt with user input
         formatted_prompt = prompt.replace("INSERT_INPUT_HERE", user_input)
         
+        # Combine system prompt and formatted prompt if system prompt exists
+        if system_prompt:
+            combined_prompt = f"{system_prompt}\n\n{formatted_prompt}"
+        else:
+            combined_prompt = formatted_prompt
+        
         model_instance = genai.GenerativeModel(model_name=model)
         
-        # Create a system instruction if provided
+        # Create generation config
         generation_config = {
             "temperature": 0.7,
             "top_p": 0.95,
             "top_k": 40,
         }
         
-        if system_prompt:
-            convo = model_instance.start_chat(
-                history=[],
-                system_instruction=system_prompt
-            )
-            response = convo.send_message(
-                formatted_prompt,
-                generation_config=generation_config,
-                stream=True
-            )
-        else:
-            response = model_instance.generate_content(
-                formatted_prompt,
-                generation_config=generation_config,
-                stream=True
-            )
+        # Generate response with streaming
+        response = model_instance.generate_content(
+            combined_prompt,
+            generation_config=generation_config,
+            stream=True
+        )
         
         # Stream the response
         response_text = ""
