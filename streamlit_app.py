@@ -2,8 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import base64
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 import time
 
 # Set page config
@@ -14,7 +13,8 @@ st.set_page_config(
 )
 
 # Set API key directly in the code
-os.environ["GEMINI_API_KEY"] = "AIzaSyCX5Q42LoLMZJ1H6WY6Ja1eso1gx04ZPJg"
+os.environ["GOOGLE_API_KEY"] = "AIzaSyCX5Q42LoLMZJ1H6WY6Ja1eso1gx04ZPJg"
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 # Custom CSS
 st.markdown("""
@@ -126,34 +126,43 @@ def load_prompts_from_csv(file):
 # Function to generate response
 def generate_response(prompt, user_input, model):
     try:
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-        
         # Format the prompt with user input
         formatted_prompt = prompt.replace("INSERT_INPUT_HERE", user_input)
         
-        contents = [
-            types.Content(
-                role="user",
-                parts=[types.Part.from_text(text=formatted_prompt)],
-            ),
-        ]
+        model_instance = genai.GenerativeModel(model_name=model)
         
-        generate_content_config = types.GenerateContentConfig(
-            response_mime_type="text/plain",
-            system_instruction=system_prompt if system_prompt else None,
-        )
+        # Create a system instruction if provided
+        generation_config = {
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "top_k": 40,
+        }
+        
+        if system_prompt:
+            convo = model_instance.start_chat(
+                history=[],
+                system_instruction=system_prompt
+            )
+            response = convo.send_message(
+                formatted_prompt,
+                generation_config=generation_config,
+                stream=True
+            )
+        else:
+            response = model_instance.generate_content(
+                formatted_prompt,
+                generation_config=generation_config,
+                stream=True
+            )
         
         # Stream the response
         response_text = ""
         response_placeholder = st.empty()
         
-        for chunk in client.models.generate_content_stream(
-            model=model,
-            contents=contents,
-            config=generate_content_config,
-        ):
-            if chunk.text:
-                response_text += chunk.text
+        for chunk in response:
+            chunk_text = chunk.text if hasattr(chunk, 'text') else ""
+            if chunk_text:
+                response_text += chunk_text
                 response_placeholder.markdown(response_text + "▌", unsafe_allow_html=True)
                 time.sleep(0.01)  # For a more natural typing effect
         
