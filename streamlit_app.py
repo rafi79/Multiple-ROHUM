@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import google.generativeai as genai
+from groq import Groq
 
 # Set page config
 st.set_page_config(
@@ -10,9 +11,12 @@ st.set_page_config(
     layout="wide",
 )
 
-# Set API key directly in the code
+# Set API keys directly in the code
 os.environ["GOOGLE_API_KEY"] = "AIzaSyCX5Q42LoLMZJ1H6WY6Ja1eso1gx04ZPJg"
 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+
+# Initialize Groq client
+groq_client = Groq(api_key="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")
 
 # Define the persona prompts
 PERSONAS = {
@@ -120,11 +124,11 @@ USER QUERY: INSERT_INPUT_HERE"""
 st.markdown("""
 <style>
     .main {
-        background-color: #1e0a2e;
-        color: white;
+        background-color: white;
+        color: #333333;
     }
     .stButton>button {
-        background-color: #7d39ad;
+        background-color: #4285F4;
         color: white;
         border-radius: 5px;
         padding: 10px 24px;
@@ -138,15 +142,15 @@ st.markdown("""
         flex-direction: column;
     }
     .chat-message.user {
-        background-color: #3d2057;
-        border-left: 5px solid #8d4bbc;
+        background-color: #F5F5F5;
+        border-left: 5px solid #4285F4;
     }
     .chat-message.assistant {
-        background-color: #2e1a3d;
-        border-left: 5px solid #6d2e9b;
+        background-color: #E8F0FE;
+        border-left: 5px solid #34A853;
     }
     .persona-card {
-        background-color: #3d2057;
+        background-color: #F5F5F5;
         padding: 1rem;
         border-radius: 0.5rem;
         margin-bottom: 1rem;
@@ -154,19 +158,19 @@ st.markdown("""
         transition: all 0.3s;
     }
     .persona-card:hover {
-        background-color: #4d2967;
+        background-color: #E8F0FE;
         transform: translateY(-2px);
     }
     .persona-card.selected {
-        background-color: #7d39ad;
-        border: 2px solid #9d59cd;
+        background-color: #E8F0FE;
+        border: 2px solid #4285F4;
     }
     .persona-icon {
         font-size: 1.5rem;
         margin-right: 0.5rem;
     }
     .send-button {
-        background-color: #7d39ad !important;
+        background-color: #4285F4 !important;
     }
     .title-container {
         display: flex;
@@ -181,13 +185,13 @@ st.markdown("""
         opacity: 0.8;
     }
     .stTextArea textarea {
-        background-color: #2e1a3d;
-        color: white;
-        border: 1px solid #8d4bbc;
+        background-color: #F5F5F5;
+        color: #333333;
+        border: 1px solid #DADCE0;
     }
     .stSelectbox > div > div {
-        background-color: #2e1a3d;
-        color: white;
+        background-color: #F5F5F5;
+        color: #333333;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -238,10 +242,37 @@ with col1:
     
     # Model selection
     st.subheader("Select Model")
-    model_option = st.selectbox(
-        "Choose a model:",
-        ["gemma-3-1b-it", "gemma-3-4b-it", "gemma-3-12b-it", "gemma-3-27b-it", "gemini-2.0-flash"]
+    api_option = st.radio(
+        "API Provider:", 
+        ["Google", "Groq"]
     )
+    
+    if api_option == "Google":
+        model_option = st.selectbox(
+            "Choose a Google model:",
+            ["gemma-3-1b-it", "gemma-3-4b-it", "gemma-3-12b-it", "gemma-3-27b-it", "gemini-2.0-flash"]
+        )
+    else:  # Groq
+        model_option = st.selectbox(
+            "Choose a Groq model:",
+            [
+                "qwen-2.5-32b",
+                "qwen-qwq-32b",
+                "deepseek-r1-distill-qwen-32b",
+                "llama-3.1-8b-instant",
+                "llama-3.2-11b-vision-preview",
+                "llama-3.2-1b-preview",
+                "llama-3.2-3b-preview",
+                "llama-3.2-90b-vision-preview",
+                "llama-3.3-70b-specdec",
+                "llama-3.3-70b-versatile",
+                "llama-guard-3-8b",
+                "llama3-70b-8192",
+                "llama3-8b-8192",
+                "meta-llama/llama-4-scout-17b-16e-instruct",
+                "mistral-saba-24b"
+            ]
+        )
 
 # Main chat area
 with col2:
@@ -297,16 +328,36 @@ with col2:
                 st.session_state.messages.append({"role": "user", "content": user_input})
                 
                 # Function to generate response
-                def generate_response(instructions, user_input, model):
+                def generate_response(instructions, user_input, api_provider, model):
                     try:
                         # Format the prompt with user input
                         formatted_prompt = instructions.replace("INSERT_INPUT_HERE", user_input)
                         
-                        # Generate response
-                        model_instance = genai.GenerativeModel(model_name=model)
-                        response = model_instance.generate_content(formatted_prompt)
-                        
-                        return response.text
+                        if api_provider == "Google":
+                            # Generate response with Google API
+                            model_instance = genai.GenerativeModel(model_name=model)
+                            response = model_instance.generate_content(formatted_prompt)
+                            return response.text
+                        else:  # Groq
+                            # Generate response with Groq API
+                            response = ""
+                            completion = groq_client.chat.completions.create(
+                                model=model,
+                                messages=[{"role": "user", "content": formatted_prompt}],
+                                temperature=0.6,
+                                max_tokens=4096,
+                                top_p=0.95,
+                                stream=True,
+                                stop=None,
+                            )
+                            
+                            # Process streaming response
+                            for chunk in completion:
+                                if chunk.choices[0].delta.content:
+                                    response += chunk.choices[0].delta.content
+                            
+                            return response
+                            
                     except Exception as e:
                         st.error(f"Error generating response: {str(e)}")
                         return "Sorry, I encountered an error while generating a response."
@@ -315,7 +366,8 @@ with col2:
                 with st.spinner("Thinking..."):
                     assistant_response = generate_response(
                         persona["instructions"], 
-                        user_input, 
+                        user_input,
+                        api_option,
                         model_option
                     )
                     
