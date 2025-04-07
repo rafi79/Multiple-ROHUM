@@ -1,16 +1,4 @@
-Here are the requirements for the multi-persona chatbot application:
-Copy# requirements.txt
-
-# Core dependencies
 streamlit>=1.28.0
 pandas>=2.0.0
-
-# Google API
 google-generativeai>=0.3.0
-
-# Groq API
 groq>=0.4.0
-
-# Optional utilities for data processing
-numpy>=1.24.0
-matplotlib>=3.7.0
