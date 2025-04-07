@@ -42,7 +42,7 @@ OPENROUTER_FREE_MODELS = [
     "meta-llama/llama-3.1-8b-instruct:free",
     "microsoft/phi-3-mini-128k-instruct:free",
     "microsoft/phi-3-medium-128k-instruct:free"
-]import streamlit as st
+]
 import pandas as pd
 import os
 import json
