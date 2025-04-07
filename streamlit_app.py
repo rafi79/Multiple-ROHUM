@@ -1,3 +1,28 @@
+import streamlit as st
+import pandas as pd
+import os
+import json
+import requests
+import google.generativeai as genai
+from groq import Groq
+
+# Set page config
+st.set_page_config(
+    page_title="Multi-Persona Chatbot",
+    page_icon="🤖",
+    layout="wide",
+)
+
+# Set API keys directly in the code
+os.environ["GOOGLE_API_KEY"] = "AIzaSyCX5Q42LoLMZJ1H6WY6Ja1eso1gx04ZPJg"
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+
+# Initialize Groq client
+groq_client = Groq(api_key="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")
+
+# OpenRouter API key
+openrouter_api_key = "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"
+
 # Define free OpenRouter models (based on the document)
 OPENROUTER_FREE_MODELS = [
     "meta-llama/llama-4-maverick:free",
@@ -43,29 +68,6 @@ OPENROUTER_FREE_MODELS = [
     "microsoft/phi-3-mini-128k-instruct:free",
     "microsoft/phi-3-medium-128k-instruct:free"
 ]
-import pandas as pd
-import os
-import json
-import requests
-import google.generativeai as genai
-from groq import Groq
-
-# Set page config
-st.set_page_config(
-    page_title="Multi-Persona Chatbot",
-    page_icon="🤖",
-    layout="wide",
-)
-
-# Set API keys directly in the code
-os.environ["GOOGLE_API_KEY"] = "AIzaSyCX5Q42LoLMZJ1H6WY6Ja1eso1gx04ZPJg"
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-
-# Initialize Groq client
-groq_client = Groq(api_key="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")
-
-# OpenRouter API key
-openrouter_api_key = "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"
 
 # Define the persona prompts
 PERSONAS = {
