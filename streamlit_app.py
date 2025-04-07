@@ -1,6 +1,52 @@
-import streamlit as st
+# Define free OpenRouter models (based on the document)
+OPENROUTER_FREE_MODELS = [
+    "meta-llama/llama-4-maverick:free",
+    "meta-llama/llama-4-scout:free",
+    "deepseek/deepseek-v3-base:free",
+    "allenai/molmo-7b-d:free",
+    "bytedance-research/ui-tars-72b:free",
+    "qwen/qwen2.5-vl-3b-instruct:free",
+    "google/gemini-2.5-pro-exp-03-25:free",
+    "qwen/qwen2.5-vl-32b-instruct:free",
+    "deepseek/deepseek-chat-v3-0324:free",
+    "featherless/qwerky-72b:free",
+    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "open-r1/olympiccoder-7b:free",
+    "open-r1/olympiccoder-32b:free",
+    "google/gemma-3-1b-it:free",
+    "google/gemma-3-4b-it:free",
+    "google/gemma-3-12b-it:free",
+    "google/gemma-3-27b-it:free",
+    "rekaai/reka-flash-3:free",
+    "deepseek/deepseek-r1-zero:free",
+    "qwen/qwq-32b:free",
+    "moonshotai/moonlight-16b-a3b-instruct:free",
+    "nousresearch/deephermes-3-llama-3-8b-preview:free",
+    "cognitivecomputations/dolphin3.0-r1-mistral-24b:free",
+    "cognitivecomputations/dolphin3.0-mistral-24b:free",
+    "deepseek/deepseek-r1-distill-qwen-32b:free",
+    "deepseek/deepseek-r1-distill-qwen-14b:free",
+    "deepseek/deepseek-r1-distill-llama-70b:free",
+    "google/gemini-2.0-flash-thinking-exp:free",
+    "deepseek/deepseek-r1:free",
+    "sophosympatheia/rogue-rose-103b-v0.2:free",
+    "google/gemini-2.0-flash-thinking-exp-1219:free",
+    "google/gemini-2.0-flash-exp:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwq-32b-preview:free",
+    "google/learnlm-1.5-pro-experimental:free",
+    "meta-llama/llama-3.2-1b-instruct:free",
+    "meta-llama/llama-3.2-11b-vision-instruct:free",
+    "meta-llama/llama-3.2-3b-instruct:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "microsoft/phi-3-mini-128k-instruct:free",
+    "microsoft/phi-3-medium-128k-instruct:free"
+]import streamlit as st
 import pandas as pd
 import os
+import json
+import requests
 import google.generativeai as genai
 from groq import Groq
 
@@ -17,6 +63,9 @@ genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 # Initialize Groq client
 groq_client = Groq(api_key="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")
+
+# OpenRouter API key
+openrouter_api_key = "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"
 
 # Define the persona prompts
 PERSONAS = {
@@ -244,7 +293,7 @@ with col1:
     st.subheader("Select Model")
     api_option = st.radio(
         "API Provider:", 
-        ["Google", "Groq"]
+        ["Google", "Groq", "OpenRouter"]
     )
     
     if api_option == "Google":
@@ -252,7 +301,7 @@ with col1:
             "Choose a Google model:",
             ["gemma-3-1b-it", "gemma-3-4b-it", "gemma-3-12b-it", "gemma-3-27b-it", "gemini-2.0-flash"]
         )
-    else:  # Groq
+    elif api_option == "Groq":
         model_option = st.selectbox(
             "Choose a Groq model:",
             [
@@ -272,6 +321,24 @@ with col1:
                 "meta-llama/llama-4-scout-17b-16e-instruct",
                 "mistral-saba-24b"
             ]
+        )
+    else:  # OpenRouter
+        show_only_free = st.checkbox("Show only free models", value=True)
+        if show_only_free:
+            model_list = OPENROUTER_FREE_MODELS
+        else:
+            # List all models or you could add more paid models here
+            model_list = OPENROUTER_FREE_MODELS + [
+                "openai/o1-pro",
+                "meta-llama/llama-3.1-70b-instruct",
+                "anthropic/claude-3.7-sonnet",
+                "mistralai/mistral-large-2411",
+                "meta-llama/llama-3.2-90b-vision-instruct"
+            ]
+        
+        model_option = st.selectbox(
+            "Choose an OpenRouter model:",
+            model_list
         )
 
 # Main chat area
@@ -338,7 +405,8 @@ with col2:
                             model_instance = genai.GenerativeModel(model_name=model)
                             response = model_instance.generate_content(formatted_prompt)
                             return response.text
-                        else:  # Groq
+                        
+                        elif api_provider == "Groq":
                             # Generate response with Groq API
                             response = ""
                             completion = groq_client.chat.completions.create(
@@ -357,6 +425,35 @@ with col2:
                                     response += chunk.choices[0].delta.content
                             
                             return response
+                        
+                        else:  # OpenRouter
+                            # Generate response with OpenRouter API
+                            headers = {
+                                "Authorization": f"Bearer {openrouter_api_key}",
+                                "Content-Type": "application/json",
+                                "HTTP-Referer": "https://multi-persona-chatbot.streamlit.app",
+                                "X-Title": "Multi-Persona Chatbot"
+                            }
+                            
+                            data = {
+                                "model": model,
+                                "messages": [{"role": "user", "content": formatted_prompt}],
+                                "temperature": 0.7,
+                                "max_tokens": 1000
+                            }
+                            
+                            response = requests.post(
+                                url="https://openrouter.ai/api/v1/chat/completions",
+                                headers=headers,
+                                data=json.dumps(data)
+                            )
+                            
+                            if response.status_code == 200:
+                                result = response.json()
+                                return result["choices"][0]["message"]["content"]
+                            else:
+                                st.error(f"OpenRouter API Error: {response.status_code}, {response.text}")
+                                return f"Sorry, there was an error with the OpenRouter API. Status code: {response.status_code}"
                             
                     except Exception as e:
                         st.error(f"Error generating response: {str(e)}")
