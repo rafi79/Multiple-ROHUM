@@ -374,10 +374,7 @@ with col2:
                     # Add assistant response to chat history
                     st.session_state.messages.append({"role": "assistant", "content": assistant_response})
                 
-                # Clear the input area
-                st.session_state.user_input = ""
-                
-                # Rerun to update UI
+                # Rerun to update UI (this will clear the input when the page refreshes)
                 st.rerun()
     else:
         st.info("Please select a persona from the left panel to start chatting.")
