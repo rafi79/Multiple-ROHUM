@@ -17,7 +17,7 @@ st.set_page_config(
 os.environ["GOOGLE_API_KEY"] = "AIzaSyCX5Q42LoLMZJ1H6WY6Ja1eso1gx04ZPJg"
 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 groq_client = Groq(api_key="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")
-openrouter_api_key = "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"
+openrouter_api_key = "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"
 
 # Define free OpenRouter models
 FREE_MODELS = [
